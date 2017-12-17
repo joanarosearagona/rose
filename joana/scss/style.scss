@@ -1,0 +1,78 @@
+@import url(https://fonts.googleapis.com/css?family=Lobster|Montserrat);
+
+$navbar_bg_color : rgba(219,84,97,0.8);
+$navbar_text_color : #FCB97D;
+$body_bg_color : #F7F7FF;
+$ingredients_color : #06D6A0;
+$panel_text_color : #073B4C;
+
+body {
+  font-family: Montserrat;
+  background-color: $body_bg_color;
+  padding-top: 80px;
+}
+.navbar {
+  padding: 10px;
+}
+.navbar-brand {
+  font-family: Lobster;
+  font-size : 30px;
+  color : $navbar_text_color !important;
+}
+.navbar-default {
+  background-color: $navbar_bg_color;
+  .navbar-collapse {
+    border: none !important;
+  }
+}
+ul.navbar-right > li > a {
+  font-size: 20px;
+  color : $navbar_text_color !important;
+}
+.panel {
+  color: $panel_text_color;
+  .panel-title {
+    font-weight: bold;
+    a {
+      padding-left: 10px;
+    }
+  }  
+}
+
+a.readMore {
+  float: right;
+  margin-top: 30px;
+  text-decoration: underline;
+}
+.ingredients {
+  color : $ingredients_color;
+}
+.actionButton {
+  margin: 10px;
+}
+.error {
+  color : red;
+}
+
+@keyframes right2left {
+  0% {
+    transform: translateX(0);
+  }
+  100% {
+    transform: translateX(-1000px);
+  }
+}
+@keyframes left2right {
+  0% {
+    transform: translateX(0);
+  }
+  100% {
+    transform: translateX(1000px);
+  }
+}
+.run-animation-left2right {
+  animation: left2right .5s;
+}
+.run-animation-right2left {
+  animation: right2left .5s;
+}

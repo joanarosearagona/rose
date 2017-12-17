@@ -1,0 +1,427 @@
+/*
+TODO : animate things
+*/
+const NUMBER_OF_WORDS_IN_EXCERPT = 10;
+const IMG_PLACEHOLDER = "http://placehold.it/350x350";
+
+var ModifyRecipe = React.createClass({
+  onTitleChange : function(event) {
+    this.props.title = event.target.value;
+  },
+  onImgChange : function(event) {
+    this.props.img = event.target.value;
+  },
+  onIngredientsChange : function(event) {
+    this.props.ingredients = event.target.value;
+  },
+  onDirectionChange : function(event) {
+    this.props.direction = event.target.value;
+  },
+  getInitialState : function() {
+    return {
+      invalidFields : []
+    }
+  },
+  onSubmit : function(e) {
+    e.preventDefault();
+    var invalidFields = this.validateInput();
+    if (invalidFields.length > 0) {
+      //field(s) not valid, check if it's edit
+      this.setState({invalidFields : invalidFields});
+    }
+    else {
+      //fields valid
+      var document = JSON.parse(localStorage.getItem("document"));
+      var entry = {
+        title : (this.props.title || ""),
+        img : (this.props.img || ""),
+        ingredients : (this.props.ingredients || ""),
+        direction : (this.props.direction || "")
+      };
+      //field valid
+      if (this.props.mode == "edit") {
+        //edit mode
+        document.splice(this.props.trueIdx, 1);
+      }
+      
+      document.push(entry);
+      document.sort(function(a, b){
+        if(a.title.toLowerCase() < b.title.toLowerCase()) return -1;
+        if(a.title.toLowerCase() > b.title.toLowerCase()) return 1;
+        return 0;
+      });
+      localStorage.setItem("document", JSON.stringify(document));
+      PubSub.publish("on_modify_recipe_success", "");
+    }
+  },
+  validateInput : function() {
+    var lookup = {
+      "title" : "required",
+      "img" : "optional",
+      "ingredients" : "required",
+      "direction" : "required"
+    };
+    var invalidFields = [];
+    for (var key in lookup) {
+      if (
+        lookup[key] == 'required' && 
+        (this.props[key] == "" || this.props[key] === undefined )) 
+      {
+        invalidFields.push(key);
+      }
+    }
+    if (invalidFields.length > 0) {
+      return invalidFields;
+    }
+    return [];
+  },
+  addHasErrorClass(invalidFields, field, classText) {
+    if (invalidFields.indexOf(field) > -1) {
+      classText += " has-error";
+    }
+    return classText;
+  },
+  render : function() {
+    //add/edit mode
+    var title = "Add new Recipe";
+    var submitText = "Add new Recipe";
+    if (this.props.mode == "edit") {
+      title = "Edit Recipe";
+      submitText = "Save";
+    }
+    
+    //validation related
+    var invalidFields = this.state.invalidFields;
+    var errorText = "";
+    if (invalidFields.length > 0) {
+      errorText = "There are " + invalidFields.length + " error(s). Please check your input";  
+    }
+    var titleClass = this.addHasErrorClass(invalidFields, "title", "form-group");
+    var ingredientsClass = this.addHasErrorClass(invalidFields, "ingredients", "form-group");
+    var directionClass = this.addHasErrorClass(invalidFields, "direction", "form-group");
+    return (
+      <div className="container">
+        <a href="#" onClick={this.props.backButton}><i className="fa fa-chevron-circle-left"></i> Back to all recipe</a>
+        <h1>{title}</h1>
+        <span className="error">{errorText}</span>
+        <form onSubmit={this.onSubmit}>
+          <div className={titleClass}>
+            <label>Food name</label>
+            <input defaultValue={this.props.title} onChange={this.onTitleChange} type="text" className="form-control" placeholder="What's the food name?" />
+          </div>
+          <div className="form-group">
+            <label>Food Image URL</label>
+            <input defaultValue={this.props.img} onChange={this.onImgChange} type="text" className="form-control" placeholder="(Optional) Insert your food Image URL" />
+          </div>
+          <div className={ingredientsClass}>
+            <label>Ingredients</label>
+            <textarea onChange={this.onIngredientsChange} className="form-control" row="5">{this.props.ingredients}</textarea>
+          </div>
+          <div className={directionClass}>
+            <label>Cooking Direction</label>
+            <textarea onChange={this.onDirectionChange} className="form-control" row="5">{this.props.direction}</textarea>
+          </div>
+          <button type="submit" className="pull-right btn btn-primary">{submitText}</button>
+        </form>
+      </div>
+    );
+  }
+});
+var HomeButton = React.createClass({
+  render : function() {
+    return (
+      <a className="navbar-brand" href="#" onClick={this.onHomeButtonClick}>RecipeBox</a>
+    );
+  },
+  onHomeButtonClick : function() {
+    PubSub.publish( 'home_button', 'hello world!' );
+  }
+});
+var SearchBar = React.createClass({
+  onSearchbarChange : function(event){
+    PubSub.publish('on_searchbar_change', event.target.value);
+  },
+  render : function() {
+    return (
+      <input type="text" className="form-control" placeholder="Search recipe" onChange={this.onSearchbarChange} />
+    );
+  }
+});
+var RecipeDetail = React.createClass({
+  convertNewline2Br : function(str) {
+    return str.replace(/(?:\r\n|\r|\n)/g, '<br />');
+  },
+  render : function() {
+    var imgSrc = IMG_PLACEHOLDER;
+    if (this.props.img != "") {
+      imgSrc = this.props.img;
+    }
+    return (
+      <div className="container">
+        <a href="#" onClick={this.props.backButton}><i className="fa fa-chevron-circle-left"></i> Back to all recipe</a>
+        <h1>{this.props.title}</h1>
+        <img src={imgSrc} className="img-thumbnail img-responsive" alt={this.props.title} />
+        <h3>Ingredients : </h3>
+        <p dangerouslySetInnerHTML={{__html: this.convertNewline2Br(this.props.ingredients)}} />
+        <h3>Cooking direction :</h3>
+        <p dangerouslySetInnerHTML={{__html: this.convertNewline2Br(this.props.direction)}} />
+        <button onClick={this.props.editButton} className="actionButton btn btn-primary pull-right"><i className="fa fa-pencil"></i> Edit</button>
+        <button onClick={this.props.deleteButton} className="actionButton btn btn-danger pull-right"><i className="fa fa-trash"></i> Delete</button>
+        
+      </div>
+    );
+  }
+});
+var RecipeList = React.createClass({
+  render : function() {
+    var item = this.props.item;
+    var imgSrc = IMG_PLACEHOLDER;
+    if (item.img != "") {
+      imgSrc = item.img;
+    }
+    return (
+      <div className="panel panel-default">
+        <div className="panel-heading">
+          <h3 className="panel-title">
+            {item.title}
+            <a onClick={this.props.delete} className="pull-right" href="#"><i className="fa fa-trash"></i></a>
+            <a onClick={this.props.edit} className="pull-right" href="#"><i className="fa fa-pencil"></i></a>
+          </h3>
+        </div>
+        <div className="panel-body">
+          <div className="row">
+            <div className="col-xs-3">
+              <a onClick={this.props.readmore} href="#">
+                <img className="img-thumbnail img-responsive" alt={item.title} src={imgSrc} />
+              </a>
+            </div>
+            <div className="col-xs-9">
+              <div className="ingredients">
+                Ingredients : {this.getExcerpt(item.ingredients)}
+              </div>
+              {this.getExcerpt(item.direction)}
+              <a onClick={this.props.readmore} className="readMore" href="#">Read more <i className="fa fa-chevron-circle-right"></i></a>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  },
+  getExcerpt : function(str, separator) {
+    separator = separator || " ";
+    var arr = str.split(separator);
+    var result = "";
+    for (var i = 0; i < NUMBER_OF_WORDS_IN_EXCERPT; i++) {
+      if (arr[i] !== undefined) {
+        result += (arr[i] + separator);
+      }
+    }
+    return result + "...";
+  }
+});
+var App = React.createClass({
+  onReadmoreClick : function(i) {
+    this.setState({
+      page : "recipe_detail",
+      selected_recipe_row_idx : i
+    });
+  },
+  onBackToAllRecipeClick : function() {
+    this.setState({
+      page : "all_recipe",
+      is_filtered: false
+    });
+  },
+  onEditClick : function(i) {
+    this.setState({
+      page : "edit_recipe",
+      selected_recipe_row_idx : i
+    });
+  },
+  onDeleteClick : function(i) {
+    if (confirm('Are you sure you want to delete this item?')) {
+      var document = JSON.parse(this.state.document);
+      var trueIdx = i;
+      if (this.state.is_filtered) {
+        trueIdx = this.state.updatedIndices[i];
+      }
+      document.splice(trueIdx, 1);
+      var docStr = JSON.stringify(document);
+      localStorage.setItem("document", docStr);
+      this.setState({
+        document: docStr,
+        page: 'all_recipe',
+        is_filtered: false
+      });
+    }
+  },
+  render: function() {
+    var document = JSON.parse(this.state.document);
+    
+    if (this.state.page == 'all_recipe') {
+      return (
+        <div id="wrapper">
+          {document.map(function(item, i) {
+            var boundReadmoreClick = this.onReadmoreClick.bind(this, i);
+            var boundDeleteClick = this.onDeleteClick.bind(this, i);
+            var boundEditClick = this.onEditClick.bind(this, i);
+            return <RecipeList delete={boundDeleteClick} readmore={boundReadmoreClick} edit={boundEditClick} item={item} row={i} />;
+          }, this)}
+        </div>
+      ); 
+    }
+    else if (this.state.page == 'filtered_recipe') {
+      document = JSON.parse(this.state.updatedDocument);
+      return (
+        <div id="wrapper">
+          {document.map(function(item, i) {
+            var boundReadmoreClick = this.onReadmoreClick.bind(this, i);
+            var boundDeleteClick = this.onDeleteClick.bind(this, i);
+            return <RecipeList delete={boundDeleteClick} readmore={boundReadmoreClick} item={item} row={i} />;
+          }, this)}
+        </div>
+      ); 
+    }
+    else if (this.state.page == 'add_new_recipe') {
+      //new recipe page
+      return (
+        <ModifyRecipe backButton={this.onBackToAllRecipeClick} />
+      );
+    }
+    else if (this.state.page == 'edit_recipe') {
+      //edit recipe page
+      var idx = this.state.selected_recipe_row_idx;
+      if (this.state.is_filtered) {
+        document = JSON.parse(this.state.updatedDocument);
+        idx = this.state.updatedIndices[idx];
+      }
+      var item = document[idx];
+      return (
+        <ModifyRecipe mode="edit" trueIdx={idx} title={item.title} img={item.img} ingredients={item.ingredients} direction={item.direction} backButton={this.onBackToAllRecipeClick} />
+      );
+    }
+    else {
+      //detail page
+      var idx = this.state.selected_recipe_row_idx;
+      var boundDeleteClick = this.onDeleteClick.bind(this, idx);
+      var boundEditClick = this.onEditClick.bind(this, idx);
+      if (this.state.is_filtered) {
+        document = JSON.parse(this.state.updatedDocument);
+      }
+      return (
+        <RecipeDetail deleteButton={boundDeleteClick} editButton={boundEditClick} backButton={this.onBackToAllRecipeClick} title={document[idx].title} ingredients={document[idx].ingredients} direction={document[idx].direction} img={document[idx].img} />
+      );
+    }
+  },
+  getInitialState : function() {
+    return {
+      document : "",
+      updatedDocument : "",
+      updatedIndices : [],//true index for the updated document
+      page : "all_recipe",
+      selected_recipe_row_idx : 0,
+      is_filtered : false
+    }
+  },
+  componentWillUnmount : function() {
+    PubSub.clearAllSubscriptions();
+  },
+  componentWillMount : function() {
+    //subscribe to add new recipe button
+    this.pubsub_token = PubSub.subscribe('new_recipe', function(msg, data){
+      this.setState({
+        page : "add_new_recipe"
+      });
+    }.bind(this) );
+    
+    //subscribe to on_modify_recipe_success
+    this.pubsub_token = PubSub.subscribe('on_modify_recipe_success', function(msg, data){
+      this.setState({
+        page : "all_recipe",
+        document : localStorage.getItem("document")
+      });
+    }.bind(this) );
+    
+    //subscribe to home button
+    this.pubsub_token = PubSub.subscribe('home_button', function(msg, data){
+      this.setState({
+        page : "all_recipe"
+      });
+    }.bind(this) );
+    
+    //subscribe to searchbar change
+    this.pubsub_token = PubSub.subscribe('on_searchbar_change', function(msg, data){
+      var document = JSON.parse(this.state.document);
+      var indices = [];
+      var updatedDocument = document.filter(function(item, index){
+        if (item.title.toLowerCase().search(data.toLowerCase()) !== -1) {
+          indices.push(index);
+          return true;
+        }
+        return false;
+      });
+      var isFiltered = false;
+      if (document.length != updatedDocument.length) {
+        isFiltered = true;
+      }
+      this.setState({
+        page: "filtered_recipe",
+        is_filtered : isFiltered,
+        updatedDocument: JSON.stringify(updatedDocument),
+        updatedIndices : indices
+      });
+    }.bind(this) );
+    
+    //if no local storage
+    if (localStorage.getItem('document') === null) {
+      //initial value
+      var initialDocument = [
+        {
+          title : "Apple Pie",
+          img : "https://www.dropbox.com/s/x2g530jdugzhlvt/apple_pie.jpg?raw=1",
+          ingredients : "a,b,c,d,e",
+          direction : "Tattooed austin fixie, microdosing single-origin coffee forage thundercats whatever authentic sustainable seitan jean shorts. Authentic man braid XOXO meggings. Roof party williamsburg food truck lumbersexual iPhone. Brooklyn tumblr put a bird on it squid bicycle rights sartorial."
+        },
+        {
+          title : "Cola marinated steak",
+          img : "https://www.dropbox.com/s/09mqmls8ylvphek/steak.jpg?raw=1",
+          ingredients : "a,b,c,d,e",
+          direction : "Tattooed austin fixie, microdosing single-origin coffee forage thundercats whatever authentic sustainable seitan jean shorts. Authentic man braid XOXO meggings. Roof party williamsburg food truck lumbersexual iPhone. Brooklyn tumblr put a bird on it squid bicycle rights sartorial."
+        },
+        {
+          title : "Spaghetti Carbonara",
+          img : "https://www.dropbox.com/s/f49cemch8jlc0tq/spaghetti-carbonara.jpg?raw=1",
+          ingredients : "a,b,c,d,e",
+          direction : "Tattooed austin fixie, microdosing single-origin coffee forage thundercats whatever authentic sustainable seitan jean shorts. Authentic man braid XOXO meggings. Roof party williamsburg food truck lumbersexual iPhone. Brooklyn tumblr put a bird on it squid bicycle rights sartorial."
+        },
+        {
+          title : "Zuppa Soup",
+          img : "",
+          ingredients : "a,b,c,d,e",
+          direction : "Tattooed austin fixie, microdosing single-origin coffee forage thundercats whatever authentic sustainable seitan jean shorts. Authentic man braid XOXO meggings. Roof party williamsburg food truck lumbersexual iPhone. Brooklyn tumblr put a bird on it squid bicycle rights sartorial."
+        }
+      ];
+      
+      localStorage.setItem("document", JSON.stringify(initialDocument));
+    }
+    
+    this.setState({document: localStorage.getItem("document")});
+  }
+});
+var AddNewRecipeButton = React.createClass({
+  onAddNewRecipe : function(){
+    PubSub.publish( 'new_recipe', 'hello world!' );
+  },
+  render : function() {
+    return (
+      <a href="#" onClick={this.onAddNewRecipe}>
+        Add new Recipe <i className="fa fa-plus"></i>
+      </a>
+    );
+  }
+});
+
+React.render(<AddNewRecipeButton />, document.getElementById('add_new_recipe'));
+React.render(<HomeButton />, document.getElementById('navbar-brand'));
+React.render(<SearchBar />, document.getElementById('search-bar'));
+React.render(<App />, document.getElementById('recipes-content'));

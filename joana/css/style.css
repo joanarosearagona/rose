@@ -1,0 +1,80 @@
+@import url(https://fonts.googleapis.com/css?family=Lobster|Montserrat);
+body {
+  font-family: Montserrat;
+  background-color: #F7F7FF;
+  padding-top: 80px;
+}
+
+.navbar {
+  padding: 10px;
+}
+
+.navbar-brand {
+  font-family: Lobster;
+  font-size: 30px;
+  color: #FCB97D !important;
+}
+
+.navbar-default {
+  background-color: rgba(219, 84, 97, 0.8);
+}
+.navbar-default .navbar-collapse {
+  border: none !important;
+}
+
+ul.navbar-right > li > a {
+  font-size: 20px;
+  color: #FCB97D !important;
+}
+
+.panel {
+  color: #073B4C;
+}
+.panel .panel-title {
+  font-weight: bold;
+}
+.panel .panel-title a {
+  padding-left: 10px;
+}
+
+a.readMore {
+  float: right;
+  margin-top: 30px;
+  text-decoration: underline;
+}
+
+.ingredients {
+  color: #06D6A0;
+}
+
+.actionButton {
+  margin: 10px;
+}
+
+.error {
+  color: red;
+}
+
+@keyframes right2left {
+  0% {
+    transform: translateX(0);
+  }
+  100% {
+    transform: translateX(-1000px);
+  }
+}
+@keyframes left2right {
+  0% {
+    transform: translateX(0);
+  }
+  100% {
+    transform: translateX(1000px);
+  }
+}
+.run-animation-left2right {
+  animation: left2right .5s;
+}
+
+.run-animation-right2left {
+  animation: right2left .5s;
+}
